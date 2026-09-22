@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" class="overflow-hidden select-none">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>استودیو معماری و طراحی فضا | مهندس ستاره امیری</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Vazirmatn & Cormorant / JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&family=Vazirmatn:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            alabaster: '#F6F4EF',
+            sandstone: '#EFECE4',
+            linen: '#E3DFD4',
+            charcoal: '#1C1E1B',
+            graphite: '#2B2F2A',
+            sage: '#4D5E51',
+            sageLight: '#718576',
+            sageGlow: 'rgba(77, 94, 81, 0.15)',
+            warmMuted: '#8C887E'
+          },
+          fontFamily: {
+            sans: ['Vazirmatn', 'sans-serif'],
+            serif: ['Cormorant Garamond', 'serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    html, body {
+      height: 100%;
+      width: 100%;
+      background-color: #F6F4EF;
+      color: #1C1E1B;
+      font-family: 'Vazirmatn', sans-serif;
+      overflow: hidden;
+      cursor: none;
+    }
+
+    /* Subdued architectural grid with stone-paper texture feel */
+    .bg-draft-grid {
+      background-image: 
+        linear-gradient(to right, rgba(43, 47, 42, 0.045) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(43, 47, 42, 0.045) 1px, transparent 1px);
+      background-size: 44px 44px;
+    }
+    .bg-draft-sub {
+      background-image: 
+        linear-gradient(to right, rgba(77, 94, 81, 0.06) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(77, 94, 81, 0.06) 1px, transparent 1px);
+      background-size: 176px 176px;
+    }
+
+    /* Minimalist Precision Cursor */
+    #cursor-dot {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 5px;
+      height: 5px;
+      background-color: #4D5E51;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      transition: transform 0.05s ease-out;
+    }
+    #cursor-ring {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(77, 94, 81, 0.45);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%, -50%);
+      transition: width 0.28s ease-out, height 0.28s ease-out, background-color 0.28s, border-color 0.28s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #cursor-ring.cursor-active {
+      width: 76px;
+      height: 76px;
+      background-color: rgba(77, 94, 81, 0.12);
+      border-color: #4D5E51;
+      backdrop-filter: blur(4px);
+    }
+    #cursor-label {
+      opacity: 0;
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #1C1E1B;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+    #cursor-ring.cursor-active #cursor-label {
+      opacity: 1;
+    }
+
+    /* Architectural Guides */
+    #crosshair-h {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(77, 94, 81, 0.15), transparent);
+      pointer-events: none;
+      z-index: 9990;
+    }
+    #crosshair-v {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: 1px;
+      background: linear-gradient(180deg, transparent, rgba(77, 94, 81, 0.15), transparent);
+      pointer-events: none;
+      z-index: 9990;
+    }
+
+    /* Slide Engine */
+    .slides-wrapper {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+    .slide-section {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(50px) scale(0.99);
+      transition: transform 0.9s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.8s ease, visibility 0.8s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 90px 5vw 40px;
+    }
+    .slide-section.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0) scale(1);
+      z-index: 10;
+    }
+    .slide-section.prev {
+      transform: translateY(-50px) scale(0.99);
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .parallax-layer {
+      transition: transform 0.2s cubic-bezier(0.2, 0, 0.2, 1);
+      will-change: transform;
+    }
+  </style>
+</head>
+<body class="bg-alabaster text-charcoal">
+
+  <!-- Micro Technical Guidance Overlay -->
+  <div id="cursor-dot"></div>
+  <div id="cursor-ring"><span id="cursor-label">EXPLORE</span></div>
+  <div id="crosshair-h"></div>
+  <div id="crosshair-v"></div>
+
+  <!-- Background Paper & Atmosphere Elements -->
+  <div class="fixed inset-0 bg-draft-grid pointer-events-none z-0"></div>
+  <div class="fixed inset-0 bg-draft-sub pointer-events-none z-0"></div>
+  <div class="fixed top-12 left-10 w-96 h-96 bg-sage/5 rounded-full blur-[120px] pointer-events-none"></div>
+  <div class="fixed bottom-12 right-10 w-[500px] h-[500px] bg-sandstone/70 rounded-full blur-[140px] pointer-events-none"></div>
+
+  <!-- Editorial Architectural Header -->
+  <header class="fixed top-0 left-0 right-0 h-24 px-8 md:px-16 flex items-center justify-between z-50 border-b border-graphite/5 bg-alabaster/85 backdrop-blur-md">
+    <div class="flex items-center gap-4">
+      <div class="w-10 h-10 rounded-full border border-graphite/20 bg-sandstone flex items-center justify-center text-graphite font-serif italic text-base">
+        S
+      </div>
+      <div>
+        <div class="text-sm md:text-base font-bold tracking-tight text-charcoal flex items-center gap-2">
+          <span>مهندس ستاره امیری</span>
+          <span class="text-[9px] px-2 py-0.5 rounded-full bg-sage/10 text-sage border border-sage/20 font-mono">طراحی و اجرا</span>
+        </div>
+        <div class="text-[10px] text-warmMuted font-mono tracking-widest uppercase">Atelier of Architecture & Interior Living</div>
+      </div>
+    </div>
+
+    <!-- Live Drafting Telemetry -->
+    <div class="hidden lg:flex items-center gap-6 font-mono text-[11px] text-warmMuted bg-white/70 px-4 py-1.5 rounded-full border border-graphite/10 shadow-sm">
+      <div class="flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-sage animate-pulse"></span>
+        <span class="text-neutral-400">COORD:</span>
+        <span id="pos-x" class="text-graphite w-12 text-left">X: 0000</span>
+        <span id="pos-y" class="text-graphite w-12 text-left">Y: 0000</span>
+      </div>
+      <span class="text-neutral-300">/</span>
+      <span>YAZD STUDIO // LEVEL 02</span>
+      <span class="text-neutral-300">/</span>
+      <span class="text-sage font-medium">SLIDE <span id="current-slide-num">01</span>/05</span>
+    </div>
+
+    <!-- Direct Conversation Trigger -->
+    <div>
+      <button onclick="goToSlide(4)" class="cursor-target px-5 py-2.5 rounded-full bg-graphite hover:bg-sage text-alabaster text-xs font-medium tracking-wide transition-all shadow-md shadow-graphite/10 hover:shadow-lg" data-label="CONTACT">
+        <span>شروع گفتگوی پروژه</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Left Editorial Pagination -->
+  <aside class="fixed left-8 top-1/2 -translate-y-1/2 z-40 hidden md:flex flex-col items-center gap-6">
+    <div class="font-mono text-[9px] text-warmMuted tracking-[0.25em] uppercase rotate-180" style="writing-mode: vertical-rl;">
+      SPATIAL SEQUENCE
+    </div>
+    
+    <div class="flex flex-col gap-3 py-2">
+      <button onclick="goToSlide(0)" class="pagination-dot cursor-target w-2.5 h-7 rounded-full bg-sage border border-sage transition-all duration-300" data-label="OVERVIEW"></button>
+      <button onclick="goToSlide(1)" class="pagination-dot cursor-target w-2.5 h-2.5 rounded-full bg-graphite/20 border border-graphite/30 transition-all duration-300 hover:bg-sage/50" data-label="PROFILE"></button>
+      <button onclick="goToSlide(2)" class="pagination-dot cursor-target w-2.5 h-2.5 rounded-full bg-graphite/20 border border-graphite/30 transition-all duration-300 hover:bg-sage/50" data-label="SERVICES"></button>
+      <button onclick="goToSlide(3)" class="pagination-dot cursor-target w-2.5 h-2.5 rounded-full bg-graphite/20 border border-graphite/30 transition-all duration-300 hover:bg-sage/50" data-label="PROCESS"></button>
+      <button onclick="goToSlide(4)" class="pagination-dot cursor-target w-2.5 h-2.5 rounded-full bg-graphite/20 border border-graphite/30 transition-all duration-300 hover:bg-sage/50" data-label="INQUIRE"></button>
+    </div>
+
+    <div class="text-[11px] font-mono text-sage" id="slide-fraction">01</div>
+  </aside>
+
+  <!-- Interaction Note -->
+  <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 text-[11px] font-mono text-warmMuted bg-white/70 backdrop-blur px-4 py-1.5 rounded-full border border-graphite/10 shadow-sm">
+    <i class="fa-solid fa-arrow-down-long animate-bounce text-sage text-[10px]"></i>
+    <span>اسکرول ماوس یا لمس جهت ورق زدن سکانس‌ها</span>
+  </div>
+
+  <!-- SLIDES MAIN ENGINE -->
+  <main class="slides-wrapper">
+
+    <!-- ============================================================ -->
+    <!-- SLIDE 1: PHILOSOPHICAL ENTRY (HERO) -->
+    <!-- ============================================================ -->
+    <section class="slide-section active" id="slide-0">
+      <div class="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+        
+        <div class="lg:col-span-7 space-y-7 text-right z-10">
+          <div class="inline-flex items-center gap-2.5 px-3 py-1 rounded-full bg-sandstone border border-graphite/10 text-xs text-graphite font-mono">
+            <span class="w-1.5 h-1.5 rounded-full bg-sage"></span>
+            <span>استودیو تخصصی معماری و طراحی زیستگاه معاصر</span>
+          </div>
+
+          <div class="space-y-3">
+            <p class="font-serif italic text-lg sm:text-xl text-warmMuted">Form follows light, texture and stillness</p>
+            <h1 class="text-3xl sm:text-5xl lg:text-6xl font-light text-charcoal leading-[1.25]">
+              طراحی فضا از خطوط مهندسی <br>
+              <span class="font-medium text-sage">تا آرامش متریال‌های طبیعی</span>
+            </h1>
+          </div>
+
+          <p class="text-graphite/80 text-sm sm:text-base leading-relaxed max-w-xl font-light">
+            ما به جای سطوح پرزرق‌وبرق کاذب، بر خلوص هندسه، ارتباط نور طبیعی با اقلیم و هم‌نشینی چوب، سنگ و میکرو‌سمنت تمرکز داریم. هر پروژه، داستانی منحصربه‌فرد از کالبد بنا تا جزیی‌ترین دیتیل اجرایی است.
+          </p>
+
+          <!-- Engineering & Design Badges -->
+          <div class="flex flex-wrap items-center gap-4 pt-2">
+            <div class="p-3.5 rounded-2xl bg-white border border-graphite/10 shadow-sm min-w-[120px]">
+              <div class="text-sage font-mono font-bold text-base">پایه ۲ نظارت</div>
+              <div class="text-[11px] text-warmMuted">نظام مهندسی یزد</div>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-white border border-graphite/10 shadow-sm min-w-[120px]">
+              <div class="text-sage font-mono font-bold text-base">طراحی معماری</div>
+              <div class="text-[11px] text-warmMuted">پلان فاز ۱ و ۲</div>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-white border border-graphite/10 shadow-sm min-w-[120px]">
+              <div class="text-sage font-mono font-bold text-base">مجری ذی‌صلاح</div>
+              <div class="text-[11px] text-warmMuted">مدیریت پیمان و ساخت</div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-4 pt-3">
+            <button onclick="goToSlide(3)" class="cursor-target px-7 py-3 rounded-full bg-sage hover:bg-graphite text-alabaster text-xs font-medium tracking-wide shadow-md shadow-sage/20 transition-all" data-label="PROJECT">
+              مشاهده روند تحول فضا
+            </button>
+            <button onclick="goToSlide(1)" class="cursor-target px-6 py-3 rounded-full bg-sandstone hover:bg-linen text-charcoal text-xs border border-graphite/10 transition-all" data-label="ATELIER">
+              درباره دیدگاه استودیو
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Architectural Collage Preview -->
+        <div class="lg:col-span-5 relative flex items-center justify-center">
+          <div class="parallax-layer relative w-72 h-96 sm:w-80 sm:h-[450px] rounded-3xl bg-white border border-graphite/10 p-5 shadow-xl overflow-hidden group">
+            
+            <div class="absolute inset-0 bg-draft-grid opacity-70"></div>
+            
+            <!-- Elegant Blueprint CAD Drawing in Slate -->
+            <svg class="w-full h-full text-sage/70" viewBox="0 0 400 520" fill="none" stroke="currentColor">
+              <rect x="25" y="25" width="350" height="470" stroke-width="1.2" stroke="#2B2F2A" opacity="0.4"/>
+              <line x1="25" y1="190" x2="375" y2="190" stroke-width="1" stroke-dasharray="3 3"/>
+              <line x1="180" y1="190" x2="180" y2="495" stroke-width="1"/>
+              <circle cx="110" cy="110" r="48" stroke="#4D5E51" stroke-width="1.2"/>
+              <rect x="60" y="230" width="85" height="100" rx="4" stroke="#4D5E51" stroke-width="1"/>
+              <path d="M 180 340 A 50 50 0 0 1 230 390" stroke="#718576" stroke-width="1.5"/>
+              <text x="45" y="460" fill="#2B2F2A" font-size="11" font-family="monospace" letter-spacing="1">PROJECT: PRIVATE RESIDENCE</text>
+              <text x="235" y="65" fill="#4D5E51" font-size="10" font-family="monospace">AXIS B-09 / 1:50</text>
+            </svg>
+
+            <div class="absolute bottom-5 inset-x-5 bg-white/90 backdrop-blur-md border border-graphite/10 p-3.5 rounded-2xl flex items-center justify-between shadow-sm">
+              <div>
+                <div class="text-[10px] font-mono text-warmMuted uppercase tracking-wider">ARCHITECT IN CHARGE</div>
+                <div class="text-xs font-bold text-charcoal">ستاره امیری • عضو نظام مهندسی</div>
+              </div>
+              <span class="w-8 h-8 rounded-full bg-sandstone flex items-center justify-center text-sage text-xs">
+                <i class="fa-solid fa-compass-drafting"></i>
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- SLIDE 2: THE ARCHITECT & IDENTITY -->
+    <!-- ============================================================ -->
+    <section class="slide-section" id="slide-1">
+      <div class="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+        
+        <!-- Portrait inside Clean Gallery Frame -->
+        <div class="lg:col-span-5 relative flex justify-center">
+          <div class="relative max-w-xs sm:max-w-sm w-full">
+            <div class="relative rounded-3xl overflow-hidden border border-graphite/10 bg-white p-3 shadow-xl">
+              <div class="rounded-2xl overflow-hidden relative">
+                <img 
+                  src="https://raw.githubusercontent.com/alisalehi68/AmiriDesign/main/profile.png" 
+                  alt="مهندس ستاره امیری" 
+                  onerror="this.onerror=null; this.src='https://placehold.co/600x700/EFECE4/2B2F2A?text=Setare+Amiri';"
+                  class="w-full h-80 sm:h-96 object-cover object-top filter grayscale contrast-105 hover:grayscale-0 transition-all duration-700"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-charcoal/50 via-transparent to-transparent"></div>
+              </div>
+
+              <div class="pt-3 px-2 flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold text-charcoal">مهندس ستاره امیری</div>
+                  <div class="text-[10px] text-warmMuted font-mono">طراح، ناظر و مجری پروژه‌های لوکس</div>
+                </div>
+                <a href="https://instagram.com/setare.amiri_arch" target="_blank" class="cursor-target w-8 h-8 rounded-full bg-sandstone text-graphite hover:text-sage flex items-center justify-center transition-colors" data-label="INSTA">
+                  <i class="fa-brands fa-instagram text-sm"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bio & Editorial Voice -->
+        <div class="lg:col-span-7 space-y-6 text-right">
+          <div class="inline-flex items-center gap-2 text-xs font-mono text-sage">
+            <span class="w-6 h-px bg-sage"></span>
+            <span>هویت و نگاه معمار</span>
+          </div>
+
+          <h2 class="text-2xl sm:text-4xl font-light text-charcoal leading-snug">
+            طراحی داخلی لوکس، حاصل انضباط مهندسی است، <br>
+            <span class="font-medium text-sage">نه انباشت تزیینات غیرضروری.</span>
+          </h2>
+
+          <p class="text-graphite/80 text-xs sm:text-sm leading-relaxed text-justify font-light">
+            سال‌ها فعالیت کارگاهی و نظارت میدانی در بستر غنی معماری یزد به من آموخته است که یک خانه پیش از آنکه سوژه عکاسی باشد، باید فضایی تنفس‌پذیر برای ساکنانش باشد. رویکرد ما در دفتر مهندسی، تلفیق کنترل سازه‌ای دقیق با طراحی داخلی متمرکز بر نور، چوب طبیعی و آرامش بصری است.
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div class="p-4 rounded-2xl bg-white border border-graphite/10 space-y-1 shadow-sm">
+              <div class="text-xs font-bold text-charcoal flex items-center gap-2">
+                <i class="fa-solid fa-drafting-compass text-sage"></i>
+                <span>پلان عملکردگرا و هوشمند</span>
+              </div>
+              <p class="text-[11px] text-warmMuted leading-normal">
+                چیدمان منطقی بدون فضای هدررفته با رعایت دقیق آیین‌نامه‌ها و ضوابط شهرداری.
+              </p>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-white border border-graphite/10 space-y-1 shadow-sm">
+              <div class="text-xs font-bold text-charcoal flex items-center gap-2">
+                <i class="fa-solid fa-shapes text-sage"></i>
+                <span>پالت متریال اصیل و مینیمال</span>
+              </div>
+              <p class="text-[11px] text-warmMuted leading-normal">
+                استفاده هدفمند از بافت سنگ تراورتن، گچبری‌های مدرن و هارمونی رنگ‌های خنثی.
+              </p>
+            </div>
+          </div>
+
+          <div class="pt-2 flex items-center gap-4 text-xs font-mono text-warmMuted">
+            <span>YAZD, DANESH AMOOZ SQ.</span>
+            <span>•</span>
+            <span class="text-sage">مجری ذیصلاح پایه ۲</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- SLIDE 3: THREE DISCIPLINES (SERVICES) -->
+    <!-- ============================================================ -->
+    <section class="slide-section" id="slide-2">
+      <div class="max-w-6xl w-full flex flex-col justify-center">
+        
+        <div class="text-center max-w-xl mx-auto mb-8 space-y-2">
+          <span class="text-xs font-mono uppercase tracking-widest text-sage">DISCIPLINES & EXPERTISE</span>
+          <h2 class="text-2xl sm:text-3xl font-light text-charcoal">خدمات جامع از نقشه تا چیدمان</h2>
+          <p class="text-xs text-warmMuted">بر روی هر ستون قرار بگیرید تا جزییات رویکرد کاری ما را مطالعه فرمایید</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          
+          <!-- Discipline 1 -->
+          <div class="cursor-target group relative rounded-3xl bg-white border border-graphite/10 p-7 transition-all duration-500 hover:border-sage hover:-translate-y-2 hover:shadow-xl flex flex-col justify-between" data-label="PLANNING">
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <div class="w-12 h-12 rounded-2xl bg-sandstone text-sage flex items-center justify-center text-xl">
+                  <i class="fa-solid fa-pen-ruler"></i>
+                </div>
+                <span class="font-mono text-xs text-warmMuted">STEP 01</span>
+              </div>
+
+              <h3 class="text-base font-bold text-charcoal group-hover:text-sage transition-colors">
+                طراحی پلان معماری و فاز ۲
+              </h3>
+              
+              <p class="text-xs text-graphite/80 leading-relaxed font-light">
+                تنظیم دقیق نقشه‌های معماری متناسب با کاربری زمین، محاسبات فضایی، دسترسی‌های روان و اخذ بدون اتلاف وقت تاییدیه‌های شهرداری.
+              </p>
+
+              <ul class="space-y-1.5 text-[11px] text-warmMuted border-t border-graphite/5 pt-3 font-mono">
+                <li>• پلان‌های فاز ۱ و فاز ۲ اجرایی</li>
+                <li>• طراحی نما با تاییدیه کمیسیون</li>
+                <li>• جانمایی بهینه نورگیرها و تاسیسات</li>
+              </ul>
+            </div>
+
+            <div class="pt-5 border-t border-graphite/5 flex items-center justify-between text-xs text-sage font-medium">
+              <span>درخواست مشاوره پلان</span>
+              <i class="fa-solid fa-arrow-left text-[10px] transform group-hover:-translate-x-1 transition-transform"></i>
+            </div>
+          </div>
+
+          <!-- Discipline 2 (Featured) -->
+          <div class="cursor-target group relative rounded-3xl bg-sandstone/70 border-2 border-sage/40 p-7 transition-all duration-500 hover:border-sage hover:-translate-y-2 hover:shadow-xl flex flex-col justify-between" data-label="SITE">
+            <div class="absolute -top-3 right-6 px-3 py-0.5 rounded-full bg-sage text-alabaster text-[10px] font-mono tracking-wider">
+              مجری رسمی ذی‌صلاح
+            </div>
+
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <div class="w-12 h-12 rounded-2xl bg-white text-sage flex items-center justify-center text-xl shadow-sm">
+                  <i class="fa-solid fa-building-circle-check"></i>
+                </div>
+                <span class="font-mono text-xs text-sage font-bold">STEP 02</span>
+              </div>
+
+              <h3 class="text-base font-bold text-charcoal group-hover:text-sage transition-colors">
+                نظارت مقیم و مدیریت پیمان
+              </h3>
+              
+              <p class="text-xs text-graphite/80 leading-relaxed font-light">
+                پوشش صفر تا صد مسئولیت نظارت کارگاهی با پروانه پایه ۲ نظام مهندسی؛ کنترل کیفیت اسکلت، نظارت بر بتن و ثبت گزارش‌های دوره‌ای.
+              </p>
+
+              <ul class="space-y-1.5 text-[11px] text-warmMuted border-t border-graphite/10 pt-3 font-mono">
+                <li>• مدیریت پیمان شفاف با بودجه مشخص</li>
+                <li>• ثبت گزارش‌های رسمی نظام مهندسی</li>
+                <li>• کنترل مقاومت سازه و کیفیت مصالح</li>
+              </ul>
+            </div>
+
+            <div class="pt-5 border-t border-graphite/10 flex items-center justify-between text-xs text-sage font-medium">
+              <span>بررسی شرایط نظارت</span>
+              <i class="fa-solid fa-arrow-left text-[10px] transform group-hover:-translate-x-1 transition-transform"></i>
+            </div>
+          </div>
+
+          <!-- Discipline 3 -->
+          <div class="cursor-target group relative rounded-3xl bg-white border border-graphite/10 p-7 transition-all duration-500 hover:border-sage hover:-translate-y-2 hover:shadow-xl flex flex-col justify-between" data-label="INTERIOR">
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <div class="w-12 h-12 rounded-2xl bg-sandstone text-sage flex items-center justify-center text-xl">
+                  <i class="fa-solid fa-couch"></i>
+                </div>
+                <span class="font-mono text-xs text-warmMuted">STEP 03</span>
+              </div>
+
+              <h3 class="text-base font-bold text-charcoal group-hover:text-sage transition-colors">
+                طراحی و بازسازی داخلی لوکس
+              </h3>
+              
+              <p class="text-xs text-graphite/80 leading-relaxed font-light">
+                خلق هارمونی در فضاهای نشیمن، آشپزخانه و خواب با تکیه بر متریال‌های ارگانیک، خطوط تمیز، نورپردازی مخفی و جزییات سفارشی مبلمان.
+              </p>
+
+              <ul class="space-y-1.5 text-[11px] text-warmMuted border-t border-graphite/5 pt-3 font-mono">
+                <li>• سناریوهای نورپردازی آرامش‌بخش</li>
+                <li>• بازسازی واحدهای فرسوده به مدرن</li>
+                <li>• انتخاب بافت، پارچه و دیتیل‌های نهایی</li>
+              </ul>
+            </div>
+
+            <div class="pt-5 border-t border-graphite/5 flex items-center justify-between text-xs text-sage font-medium">
+              <span>مشاهده نمونه‌های دکوراسیون</span>
+              <i class="fa-solid fa-arrow-left text-[10px] transform group-hover:-translate-x-1 transition-transform"></i>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- SLIDE 4: BEFORE / AFTER REVEAL -->
+    <!-- ============================================================ -->
+    <section class="slide-section" id="slide-3">
+      <div class="max-w-6xl w-full flex flex-col justify-center">
+        
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <span class="text-xs font-mono uppercase tracking-widest text-sage">SPATIAL TRANSFORMATION</span>
+            <h2 class="text-xl sm:text-2xl font-light text-charcoal">از خطوط سازه تا سکونت در فضا</h2>
+          </div>
+          <div class="text-xs font-mono text-warmMuted hidden sm:block">
+            <i class="fa-solid fa-arrows-left-right text-sage mr-1"></i>
+            ماوس را روی قاب حرکت دهید تا تفاوت پلان و اجرای نهایی را مشاهده کنید
+          </div>
+        </div>
+
+        <!-- Natural Split Screen Frame -->
+        <div id="split-box" class="cursor-target relative h-[380px] sm:h-[440px] rounded-3xl overflow-hidden border border-graphite/10 shadow-2xl bg-sandstone select-none" data-label="SLIDE">
+          
+          <!-- Background: Architectural CAD Plan (Before) -->
+          <div class="absolute inset-0 bg-[#E8E4DA] flex items-center justify-center p-8 bg-draft-grid">
+            <svg class="w-full h-full text-graphite/70" viewBox="0 0 800 450" fill="none" stroke="currentColor">
+              <rect x="50" y="40" width="700" height="370" stroke-width="2" stroke="#2B2F2A"/>
+              <line x1="280" y1="40" x2="280" y2="410" stroke-width="1.5" stroke="#4D5E51"/>
+              <line x1="280" y1="230" x2="750" y2="230" stroke-width="1.5" stroke="#4D5E51"/>
+              <circle cx="160" cy="140" r="55" stroke="#2B2F2A" stroke-width="1.2" stroke-dasharray="4 4"/>
+              <path d="M 280 130 A 60 60 0 0 0 220 70" stroke="#718576" stroke-width="1.5"/>
+              <text x="80" y="80" fill="#2B2F2A" font-size="13" font-family="monospace">CONSTRUCTION DETAIL // WALL SECTION</text>
+              <text x="310" y="270" fill="#4D5E51" font-size="13" font-family="monospace">RESIDENTIAL LIVING AREA // 92.0 m²</text>
+              <text x="500" y="80" fill="#2B2F2A" font-size="12" font-family="monospace">NATURAL DAYLIGHT AXIS</text>
+            </svg>
+
+            <div class="absolute bottom-5 right-5 bg-white/90 border border-graphite/10 px-3.5 py-1.5 rounded-full text-xs font-mono text-graphite shadow-sm">
+              <i class="fa-solid fa-layer-group text-sage ml-1"></i> لایه ۱: دیسکاور نقشه و دیتیل فنی
+            </div>
+          </div>
+
+          <!-- Foreground: Warm Muted Finished Living Room (After) -->
+          <div id="split-overlay" class="absolute inset-0 bg-cover bg-center" style="clip-path: polygon(50% 0, 100% 0, 100% 100%, 50% 100%); background-image: url('https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1600&q=80');">
+            <div class="absolute inset-0 bg-charcoal/10"></div>
+            
+            <div class="absolute bottom-5 left-5 bg-white/90 border border-graphite/10 px-3.5 py-1.5 rounded-full text-xs font-mono text-charcoal shadow-sm">
+              <i class="fa-solid fa-sun text-sage ml-1"></i> لایه ۲: اجرای نهایی و حضور نور طبیعی
+            </div>
+          </div>
+
+          <!-- Subtle Divider Bar -->
+          <div id="split-bar" class="absolute top-0 bottom-0 w-0.5 bg-sage shadow-[0_0_12px_rgba(77,94,81,0.5)] pointer-events-none" style="left: 50%;">
+            <div class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-white text-sage border border-sage/40 flex items-center justify-center text-xs font-bold shadow-md">
+              <i class="fa-solid fa-arrows-left-right text-[10px]"></i>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="flex items-center justify-between text-[11px] font-mono text-warmMuted mt-3 px-2">
+          <span>پروژه ویلایی وصال • تلفیق کناف مدرن و چوب بلوط</span>
+          <span class="text-sage">طراحی و نظارت: ستاره امیری</span>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- SLIDE 5: CONTACT & ATELIER DIALOGUE -->
+    <!-- ============================================================ -->
+    <section class="slide-section" id="slide-4">
+      <div class="max-w-4xl w-full text-center space-y-8">
+        
+        <div class="space-y-3">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sandstone border border-graphite/10 text-xs font-mono text-sage">
+            <span class="w-2 h-2 rounded-full bg-sage animate-ping"></span>
+            <span>پذیرش پروژه‌های طراحی و نظارت</span>
+          </div>
+
+          <h2 class="text-3xl sm:text-5xl font-light text-charcoal">
+            خلق فضایی متناسب با <br>
+            <span class="font-medium text-sage">سبک زندگی شما</span>
+          </h2>
+          
+          <p class="text-graphite/70 text-xs sm:text-sm max-w-lg mx-auto font-light leading-relaxed">
+            برای بررسی موقعیت زمین، شروع فرایند طراحی نقشه یا بازسازی فضای کنونی‌تان، پذیرای گفتگوی اولیه در دفتر یا به صورت آنلاین هستیم.
+          </p>
+        </div>
+
+        <!-- Elegant Contact Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-right">
+          
+          <!-- WhatsApp Contact -->
+          <a href="https://wa.me/989130000000?text=%D8%B3%D9%84%D8%A7%D9%85%20%D9%85%D9%87%D9%86%D8%AF%D8%B3%20%D8%A7%D9%85%DB%8C%D8%B1%DB%8C%20%DA%AF%D8%B1%D8%A7%D9%85%DB%8C%D8%8C%20%D8%AC%D9%87%D8%AA%20%D9%85%D8%B4%D8%A7%D9%88%D8%B1%D9%87%20%D8%B7%D8%B1%D8%A7%D8%AD%DB%8C%20%D9%BE%DB%8C%D8%A7%D9%85%20%D9%85%DB%8C%E2%80%8C%D8%AF%D9%87%D9%85." target="_blank" class="cursor-target p-6 rounded-3xl bg-white border border-graphite/10 hover:border-sage hover:shadow-lg transition-all flex flex-col justify-between group" data-label="WHATSAPP">
+            <div class="flex items-center justify-between mb-4">
+              <span class="w-10 h-10 rounded-full bg-sandstone flex items-center justify-center text-sage group-hover:scale-110 transition-transform">
+                <i class="fa-brands fa-whatsapp text-lg"></i>
+              </span>
+              <span class="font-mono text-[10px] text-warmMuted">FAST INQUIRY</span>
+            </div>
+            <div>
+              <div class="text-sm font-bold text-charcoal">گفتگوی مستقیم واتساپ</div>
+              <div class="text-[11px] text-warmMuted mt-1">ارسال فایل ابعاد، پلان یا لوکیشن</div>
+            </div>
+          </a>
+
+          <!-- Instagram Contact -->
+          <a href="https://instagram.com/setare.amiri_arch" target="_blank" class="cursor-target p-6 rounded-3xl bg-white border border-graphite/10 hover:border-sage hover:shadow-lg transition-all flex flex-col justify-between group" data-label="INSTA">
+            <div class="flex items-center justify-between mb-4">
+              <span class="w-10 h-10 rounded-full bg-sandstone flex items-center justify-center text-sage group-hover:scale-110 transition-transform">
+                <i class="fa-brands fa-instagram text-lg"></i>
+              </span>
+              <span class="font-mono text-[10px] text-warmMuted">ATELIER STORIES</span>
+            </div>
+            <div>
+              <div class="text-sm font-bold text-charcoal">setare.amiri_arch@</div>
+              <div class="text-[11px] text-warmMuted mt-1">روایت پروژه‌ها و کارگاه‌های زنده</div>
+            </div>
+          </a>
+
+          <!-- Location -->
+          <div class="p-6 rounded-3xl bg-white border border-graphite/10 flex flex-col justify-between text-right">
+            <div class="flex items-center justify-between mb-4">
+              <span class="w-10 h-10 rounded-full bg-sandstone flex items-center justify-center text-sage">
+                <i class="fa-solid fa-location-dot text-base"></i>
+              </span>
+              <span class="font-mono text-[10px] text-warmMuted">STUDIO BASE</span>
+            </div>
+            <div>
+              <div class="text-sm font-bold text-charcoal">یزد، میدان دانش‌آموز</div>
+              <div class="text-[11px] text-warmMuted mt-1">دفتر مهندسی گروه معماری پردیس</div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="pt-6 border-t border-graphite/10 flex items-center justify-between text-xs text-warmMuted font-mono">
+          <span>ATELIER SETARE AMIRI © 2026 // ALL RIGHTS RESERVED</span>
+          <button onclick="goToSlide(0)" class="cursor-target text-sage hover:underline" data-label="TOP">
+            بازگشت به ابتدا <i class="fa-solid fa-arrow-up text-[10px] mr-1"></i>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // ==============================================================
+    // 1. STATE & SLIDE ENGINE
+    // ==============================================================
+    let currentSlide = 0;
+    const totalSlides = 5;
+    let isTransitioning = false;
+
+    const slides = [
+      document.getElementById('slide-0'),
+      document.getElementById('slide-1'),
+      document.getElementById('slide-2'),
+      document.getElementById('slide-3'),
+      document.getElementById('slide-4')
+    ];
+
+    const dots = document.querySelectorAll('.pagination-dot');
+    const slideFraction = document.getElementById('slide-fraction');
+    const slideNumberTop = document.getElementById('current-slide-num');
+
+    function updateSlideUI() {
+      slides.forEach((slide, index) => {
+        slide.classList.remove('active', 'prev');
+        if (index === currentSlide) {
+          slide.classList.add('active');
+        } else if (index < currentSlide) {
+          slide.classList.add('prev');
+        }
+      });
+
+      // Update Pagination Indicators
+      dots.forEach((dot, index) => {
+        if (index === currentSlide) {
+          dot.classList.remove('h-2.5', 'bg-graphite/20');
+          dot.classList.add('h-7', 'bg-sage');
+        } else {
+          dot.classList.remove('h-7', 'bg-sage');
+          dot.classList.add('h-2.5', 'bg-graphite/20');
+        }
+      });
+
+      const formattedNum = String(currentSlide + 1).padStart(2, '0');
+      if (slideFraction) slideFraction.textContent = formattedNum;
+      if (slideNumberTop) slideNumberTop.textContent = formattedNum;
+    }
+
+    function goToSlide(index) {
+      if (index < 0 || index >= totalSlides || isTransitioning) return;
+      isTransitioning = true;
+      currentSlide = index;
+      updateSlideUI();
+      setTimeout(() => {
+        isTransitioning = false;
+      }, 750);
+    }
+
+    // Wheel listener
+    window.addEventListener('wheel', (e) => {
+      if (isTransitioning) return;
+      if (e.deltaY > 35) {
+        goToSlide(currentSlide + 1);
+      } else if (e.deltaY < -35) {
+        goToSlide(currentSlide - 1);
+      }
+    }, { passive: true });
+
+    // Keyboard controls
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+        goToSlide(currentSlide + 1);
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        goToSlide(currentSlide - 1);
+      }
+    });
+
+    // Touch swipe controls
+    let touchStartY = 0;
+    window.addEventListener('touchstart', (e) => {
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+      const touchEndY = e.changedTouches[0].clientY;
+      const diff = touchStartY - touchEndY;
+      if (Math.abs(diff) > 45) {
+        if (diff > 0) goToSlide(currentSlide + 1);
+        else goToSlide(currentSlide - 1);
+      }
+    }, { passive: true });
+
+    // ==============================================================
+    // 2. PRECISION CURSOR & REAL-TIME CAD TELEMETRY
+    // ==============================================================
+    const dot = document.getElementById('cursor-dot');
+    const ring = document.getElementById('cursor-ring');
+    const label = document.getElementById('cursor-label');
+    const crosshairH = document.getElementById('crosshair-h');
+    const crosshairV = document.getElementById('crosshair-v');
+    const posX = document.getElementById('pos-x');
+    const posY = document.getElementById('pos-y');
+
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+    let ringX = mouseX;
+    let ringY = mouseY;
+
+    window.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+
+      dot.style.transform = `translate(${mouseX}px, ${mouseY}px)`;
+      crosshairH.style.top = `${mouseY}px`;
+      crosshairV.style.left = `${mouseX}px`;
+
+      if (posX) posX.textContent = `X: ${String(Math.round(mouseX)).padStart(4, '0')}`;
+      if (posY) posY.textContent = `Y: ${String(Math.round(mouseY)).padStart(4, '0')}`;
+
+      // Organic micro parallax
+      const xFactor = (mouseX / window.innerWidth - 0.5) * 16;
+      const yFactor = (mouseY / window.innerHeight - 0.5) * 16;
+      document.querySelectorAll('.parallax-layer').forEach(layer => {
+        layer.style.transform = `translate3d(${xFactor}px, ${yFactor}px, 0px)`;
+      });
+    });
+
+    function renderCursor() {
+      ringX += (mouseX - ringX) * 0.16;
+      ringY += (mouseY - ringY) * 0.16;
+      ring.style.transform = `translate(${ringX}px, ${ringY}px)`;
+      requestAnimationFrame(renderCursor);
+    }
+    requestAnimationFrame(renderCursor);
+
+    document.querySelectorAll('.cursor-target').forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        ring.classList.add('cursor-active');
+        const customLabel = el.getAttribute('data-label') || 'EXPLORE';
+        label.textContent = customLabel;
+      });
+      el.addEventListener('mouseleave', () => {
+        ring.classList.remove('cursor-active');
+      });
+    });
+
+    // ==============================================================
+    // 3. BEFORE / AFTER SPLIT CONTROLLER
+    // ==============================================================
+    const splitBox = document.getElementById('split-box');
+    const splitOverlay = document.getElementById('split-overlay');
+    const splitBar = document.getElementById('split-bar');
+
+    function updateSplitPosition(clientX) {
+      if (!splitBox) return;
+      const rect = splitBox.getBoundingClientRect();
+      const x = clientX - rect.left;
+      let percent = (x / rect.width) * 100;
+      percent = Math.max(0, Math.min(100, percent));
+
+      splitOverlay.style.clipPath = `polygon(${percent}% 0, 100% 0, 100% 100%, ${percent}% 100%)`;
+      splitBar.style.left = `${percent}%`;
+    }
+
+    if (splitBox) {
+      splitBox.addEventListener('mousemove', (e) => {
+        updateSplitPosition(e.clientX);
+      });
+
+      splitBox.addEventListener('touchmove', (e) => {
+        if (e.touches && e.touches[0]) {
+          updateSplitPosition(e.touches[0].clientX);
+        }
+      }, { passive: true });
+    }
+
+    updateSlideUI();
+  </script>
+</body>
+</html>
